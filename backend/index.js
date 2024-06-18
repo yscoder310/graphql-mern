@@ -6,11 +6,16 @@ import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import dotenv from "dotenv";
 
-dotenv.config();
+import passport from "passport";
+import session from "express-session";
+import connectMongo from "connect-mongodb-session";
 
 import mergedResolvers from "./resolvers/index.js";
 import mergedTypeDefs from "./typeDefs/index.js";
 import { connectDb } from "./db/connectDb.js";
+import { buildContext } from "graphql-passport";
+
+dotenv.config();
 
 // Required logic for integrating with Express
 const app = express();
@@ -19,6 +24,31 @@ const app = express();
 // Below, we tell Apollo Server to "drain" this httpServer,
 // enabling our servers to shut down gracefully.
 const httpServer = http.createServer(app);
+
+const MongoDBStore = connectMongo(session);
+
+const store = new MongoDBStore({
+  uri: process.env.MONGO_URI,
+  collection: "sessions",
+});
+
+store.on("error", (err) => console.log(err));
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false, //this option specifies whether to save the session to the store on every request
+    saveUninitialized: false, //option specifies whether to save uninitialized  sessions
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+      httpOnly: true, //this oprtion prevents cross-site scripting (XSS) attacks
+    },
+    store: store,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 const server = new ApolloServer({
   typeDefs: mergedTypeDefs,
@@ -30,12 +60,16 @@ await server.start();
 
 app.use(
   "/v1",
-  cors(),
+  cors({
+    origin: "http://localhost:300",
+    credentials: true,
+  }),
   express.json(),
   // expressMiddleware accepts the same arguments:
   // an Apollo Server instance and optional configuration options
   expressMiddleware(server, {
-    context: async ({ req }) => ({ token: req.headers.token }),
+    // context: async ({ req }) => ({ token: req.headers.token }),
+    context: async ({ req, res }) => buildContext({ req, res }),
   })
 );
 
