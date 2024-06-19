@@ -14,8 +14,10 @@ import mergedResolvers from "./resolvers/index.js";
 import mergedTypeDefs from "./typeDefs/index.js";
 import { connectDb } from "./db/connectDb.js";
 import { buildContext } from "graphql-passport";
+import { configurePassport } from "./passport/passport.config.js";
 
 dotenv.config();
+configurePassport();
 
 // Required logic for integrating with Express
 const app = express();
