@@ -61,9 +61,9 @@ const server = new ApolloServer({
 await server.start();
 
 app.use(
-  "/v1",
+  "/api/v1",
   cors({
-    origin: "http://localhost:300",
+    origin: "http://localhost:3000",
     credentials: true,
   }),
   express.json(),

@@ -1,6 +1,6 @@
-import { users } from "../dummy/data.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
+import Transaction from "../models/transaction.model.js";
 
 const userResolver = {
   Query: {
@@ -84,6 +84,17 @@ const userResolver = {
         return { message: "Logged out successfully" };
       } catch (err) {
         console.error("Error in logout:", err);
+        throw new Error(err.message || "Internal server error");
+      }
+    },
+  },
+  User: {
+    transactions: async (parent) => {
+      try {
+        const transactions = await Transaction.find({ userId: parent._id });
+        return transactions;
+      } catch (err) {
+        console.log("Error in user.transactions resolver: ", err);
         throw new Error(err.message || "Internal server error");
       }
     },
